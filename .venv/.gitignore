@@ -1,0 +1,12 @@
+# venv
+.venv/
+# Python
+__pycache__/
+*.pyc
+# Jupyter
+.ipynb_checkpoints/
+# Data & models (keep raw local, commit samples only)
+data/*.csv
+models/
+# VS Code
+.vscode/
