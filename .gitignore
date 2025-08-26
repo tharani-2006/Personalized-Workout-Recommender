@@ -15,3 +15,9 @@ Thumbs.db
 
 .venv/
 .venv
+
+data/
+notebooks/
+reports/
+models/
+*.csv
