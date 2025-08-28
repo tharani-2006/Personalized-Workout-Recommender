@@ -104,9 +104,9 @@ def evaluate_model(model, X_test, y_test):
 
 
 if __name__ == '__main__':
-    # Load and preprocess data (use sample for testing)
+    # Load and preprocess data (full dataset)
     print("Loading and preprocessing data...")
-    X_train, X_test, y_train, y_test = preprocess_data('../data/train_sample.csv')
+    X_train, X_test, y_train, y_test = preprocess_data('../data/train.csv')
 
     print(f"Training set shape: {X_train.shape}")
     print(f"Test set shape: {X_test.shape}")
