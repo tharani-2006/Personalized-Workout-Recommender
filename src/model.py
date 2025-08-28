@@ -4,12 +4,87 @@ from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.metrics import precision_recall_fscore_support
+from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from data_preprocessing import preprocess_data
 
-def train_model(X_train, y_train):
-    """Trains a Random Forest model."""
-    model = RandomForestClassifier(random_state=42)  # You can tune hyperparameters here
-    model.fit(X_train, y_train)
+def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50):
+    """
+    Tunes the Random Forest hyperparameters using GridSearchCV or RandomizedSearchCV.
+
+    Args:
+        X_train: Training features
+        y_train: Training labels
+        search_type: 'grid' for GridSearchCV or 'random' for RandomizedSearchCV
+        n_iter: Number of iterations for RandomizedSearchCV
+
+    Returns:
+        Best estimator from the search
+    """
+    # Define parameter grid
+    param_grid = {
+        'n_estimators': [100, 200, 300],
+        'max_depth': [5, 10, 15, None],
+        'min_samples_split': [2, 4, 8],
+        'min_samples_leaf': [1, 2, 4],
+        'max_features': ['sqrt', 'log2', None]
+    }
+
+    # Create base model
+    rf = RandomForestClassifier(random_state=42)
+
+    if search_type == 'grid':
+        print("Performing Grid Search...")
+        search = GridSearchCV(
+            estimator=rf,
+            param_grid=param_grid,
+            cv=3,  # 3-fold cross-validation
+            scoring='accuracy',
+            n_jobs=-1,  # Use all available cores
+            verbose=1
+        )
+    else:  # random search
+        print("Performing Randomized Search...")
+        search = RandomizedSearchCV(
+            estimator=rf,
+            param_distributions=param_grid,
+            n_iter=n_iter,
+            cv=3,
+            scoring='accuracy',
+            n_jobs=-1,
+            verbose=1,
+            random_state=42
+        )
+
+    # Fit the search
+    search.fit(X_train, y_train)
+
+    print("Best Hyperparameters:", search.best_params_)
+    print("Best Cross-Validation Score:", search.best_score_)
+
+    return search.best_estimator_
+
+
+def train_model(X_train, y_train, tune_hyperparams=False, search_type='random'):
+    """
+    Trains a Random Forest model.
+
+    Args:
+        X_train: Training features
+        y_train: Training labels
+        tune_hyperparams: Whether to tune hyperparameters
+        search_type: 'grid' or 'random' for hyperparameter search
+
+    Returns:
+        Trained model
+    """
+    if tune_hyperparams:
+        print("Training model with hyperparameter tuning...")
+        model = tune_hyperparameters(X_train, y_train, search_type=search_type)
+    else:
+        print("Training model with default hyperparameters...")
+        model = RandomForestClassifier(random_state=42)
+        model.fit(X_train, y_train)
+
     return model
 
 
@@ -29,11 +104,33 @@ def evaluate_model(model, X_test, y_test):
 
 
 if __name__ == '__main__':
-    # Load and preprocess data (replace with your actual data loading)
-    X_train, X_test, y_train, y_test = preprocess_data('data/train.csv')
+    # Load and preprocess data (use sample for testing)
+    print("Loading and preprocessing data...")
+    X_train, X_test, y_train, y_test = preprocess_data('../data/train_sample.csv')
 
-    # Train the model
-    model = train_model(X_train, y_train)
+    print(f"Training set shape: {X_train.shape}")
+    print(f"Test set shape: {X_test.shape}")
+    print(f"Number of classes: {len(set(y_train))}")
 
-    evaluate_model(model, X_test, y_test)
+    # Train the model with hyperparameter tuning
+    print("\n" + "="*50)
+    print("TRAINING MODEL WITH HYPERPARAMETER TUNING")
+    print("="*50)
+    model_tuned = train_model(X_train, y_train, tune_hyperparams=True, search_type='random')
+
+    print("\n" + "="*50)
+    print("EVALUATING TUNED MODEL")
+    print("="*50)
+    evaluate_model(model_tuned, X_test, y_test)
+
+    # Compare with baseline model (no tuning)
+    print("\n" + "="*50)
+    print("TRAINING BASELINE MODEL (NO TUNING)")
+    print("="*50)
+    model_baseline = train_model(X_train, y_train, tune_hyperparams=False)
+
+    print("\n" + "="*50)
+    print("EVALUATING BASELINE MODEL")
+    print("="*50)
+    evaluate_model(model_baseline, X_test, y_test)
 
