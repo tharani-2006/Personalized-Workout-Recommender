@@ -4,6 +4,7 @@ from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 from sklearn.metrics import precision_recall_fscore_support
+from data_preprocessing import preprocess_data
 
 def train_model(X_train, y_train):
     """Trains a Random Forest model."""
@@ -29,11 +30,10 @@ def evaluate_model(model, X_test, y_test):
 
 if __name__ == '__main__':
     # Load and preprocess data (replace with your actual data loading)
-    from src.data_preprocessing import preprocess_data  # Assuming preprocess_data is in data_preprocessing.py
     X_train, X_test, y_train, y_test = preprocess_data('data/train.csv')
 
     # Train the model
     model = train_model(X_train, y_train)
 
-    # Evaluate the model
     evaluate_model(model, X_test, y_test)
+
