@@ -80,6 +80,48 @@ def extract_workout_features(completion_text):
     return features
 
 
+def analyze_class_distribution(y, class_names=None):
+    """
+    Analyze and display class distribution to check for imbalance.
+
+    Args:
+        y: Target variable array
+        class_names: Optional list of class names for display
+
+    Returns:
+        dict: Class distribution statistics
+    """
+    unique, counts = np.unique(y, return_counts=True)
+    total_samples = len(y)
+
+    print("\n" + "="*40)
+    print("CLASS DISTRIBUTION ANALYSIS")
+    print("="*40)
+
+    distribution = {}
+    for class_val, count in zip(unique, counts):
+        percentage = (count / total_samples) * 100
+        class_name = class_names[class_val] if class_names else f"Class {class_val}"
+        distribution[class_val] = {'count': count, 'percentage': percentage}
+        print(f"{class_name}: {count} samples ({percentage:.1f}%)")
+
+    # Check for significant imbalance (if any class has <20% or >60% of data)
+    percentages = [dist['percentage'] for dist in distribution.values()]
+    min_percent = min(percentages)
+    max_percent = max(percentages)
+
+    is_imbalanced = min_percent < 20 or max_percent > 60
+    print(f"\nImbalance detected: {'Yes' if is_imbalanced else 'No'}")
+    print(f"Min class: {min_percent:.1f}%, Max class: {max_percent:.1f}%")
+
+    if is_imbalanced:
+        print("💡 Recommendation: Use class_weight='balanced' in your model")
+    else:
+        print("✅ Classes are reasonably balanced")
+
+    return distribution
+
+
 def preprocess_data(csv_filepath, test_size=0.2, random_state=42):
     """
     Preprocesses the data from the given CSV file.
@@ -127,6 +169,10 @@ def preprocess_data(csv_filepath, test_size=0.2, random_state=42):
     # Create target variable from primary_workout_type (this is our classification target)
     label_encoder = LabelEncoder()
     df['workout_type'] = label_encoder.fit_transform(df['primary_workout_type'])
+
+    # Analyze class distribution before splitting
+    class_names = ['cardio', 'mixed', 'strength']  # Based on label encoder order
+    class_distribution = analyze_class_distribution(df['workout_type'], class_names)
 
     # Prepare data for splitting (drop text columns and target, keep primary_workout_type for encoding)
     X = df.drop(['prompt', 'completion', 'workout_type', 'primary_workout_type'], axis=1)

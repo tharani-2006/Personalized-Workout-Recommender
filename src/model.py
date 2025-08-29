@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
@@ -7,7 +8,7 @@ from sklearn.metrics import precision_recall_fscore_support
 from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
 from data_preprocessing import preprocess_data
 
-def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50):
+def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50, use_class_weight=True):
     """
     Tunes the Random Forest hyperparameters using GridSearchCV or RandomizedSearchCV.
 
@@ -16,10 +17,22 @@ def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50):
         y_train: Training labels
         search_type: 'grid' for GridSearchCV or 'random' for RandomizedSearchCV
         n_iter: Number of iterations for RandomizedSearchCV
+        use_class_weight: Whether to use balanced class weights
 
     Returns:
         Best estimator from the search
     """
+    # Check class distribution to determine if we need class balancing
+    unique, counts = np.unique(y_train, return_counts=True)
+    total_samples = len(y_train)
+    percentages = [(count / total_samples) * 100 for count in counts]
+    min_percent = min(percentages)
+    max_percent = max(percentages)
+    is_imbalanced = min_percent < 20 or max_percent > 60
+
+    print(f"Class distribution: {dict(zip(unique, counts))}")
+    print(f"Class imbalance detected: {'Yes' if is_imbalanced else 'No'}")
+
     # Define parameter grid
     param_grid = {
         'n_estimators': [100, 200, 300],
@@ -29,8 +42,14 @@ def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50):
         'max_features': ['sqrt', 'log2', None]
     }
 
-    # Create base model
-    rf = RandomForestClassifier(random_state=42)
+    # Create base model with class weight handling
+    class_weight = 'balanced' if (use_class_weight and is_imbalanced) else None
+    if class_weight:
+        print("🎯 Using balanced class weights to handle imbalanced data")
+    else:
+        print("✅ Using default class weights (data appears balanced)")
+
+    rf = RandomForestClassifier(random_state=42, class_weight=class_weight)
 
     if search_type == 'grid':
         print("Performing Grid Search...")
@@ -64,7 +83,7 @@ def tune_hyperparameters(X_train, y_train, search_type='grid', n_iter=50):
     return search.best_estimator_
 
 
-def train_model(X_train, y_train, tune_hyperparams=False, search_type='random'):
+def train_model(X_train, y_train, tune_hyperparams=False, search_type='random', use_class_weight=True):
     """
     Trains a Random Forest model.
 
@@ -73,16 +92,30 @@ def train_model(X_train, y_train, tune_hyperparams=False, search_type='random'):
         y_train: Training labels
         tune_hyperparams: Whether to tune hyperparameters
         search_type: 'grid' or 'random' for hyperparameter search
+        use_class_weight: Whether to use balanced class weights
 
     Returns:
         Trained model
     """
     if tune_hyperparams:
         print("Training model with hyperparameter tuning...")
-        model = tune_hyperparameters(X_train, y_train, search_type=search_type)
+        model = tune_hyperparameters(X_train, y_train, search_type=search_type, use_class_weight=use_class_weight)
     else:
         print("Training model with default hyperparameters...")
-        model = RandomForestClassifier(random_state=42)
+
+        # Check if we need class balancing for baseline model too
+        unique, counts = np.unique(y_train, return_counts=True)
+        total_samples = len(y_train)
+        percentages = [(count / total_samples) * 100 for count in counts]
+        min_percent = min(percentages)
+        max_percent = max(percentages)
+        is_imbalanced = min_percent < 20 or max_percent > 60
+
+        class_weight = 'balanced' if (use_class_weight and is_imbalanced) else None
+        if class_weight:
+            print("🎯 Using balanced class weights for baseline model")
+
+        model = RandomForestClassifier(random_state=42, class_weight=class_weight)
         model.fit(X_train, y_train)
 
     return model
