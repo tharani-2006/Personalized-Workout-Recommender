@@ -6,7 +6,6 @@ from http.server import BaseHTTPRequestHandler
 import pickle
 import os
 
-# Human-friendly workout type mapping
 human_friendly_names = {
     'cardio': 'Endurance Training',
     'mixed': 'Balanced Fitness', 

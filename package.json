@@ -2,11 +2,8 @@
   "name": "personalized-workout-recommender",
   "version": "1.0.0",
   "description": "AI-powered workout type recommendation system",
-  "main": "index.html",
   "scripts": {
-    "dev": "vercel dev",
-    "build": "echo 'No build step required'",
-    "deploy": "vercel --prod"
+    "start": "echo 'Static site - no build required'"
   },
   "keywords": [
     "fitness",
@@ -15,6 +12,6 @@
     "recommendation",
     "health"
   ],
-  "author": "Your Name",
+  "author": "tharani-2006",
   "license": "MIT"
 }

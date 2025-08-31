@@ -1,13 +1,4 @@
-"""
-Personalized Workout Recommender - Data Preprocessing Pipeline
 
-This module handles the complete data preprocessing pipeline for workout recommendation,
-including feature extraction from text data, workout analysis, and data preparation
-for machine learning models.
-
-Author: ML Team
-Date: 2025-08-29
-"""
 
 import pandas as pd
 import re
