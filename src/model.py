@@ -138,13 +138,15 @@ def evaluate_model(model, X_test, y_test):
     print(f"F1-Score: {fscore}")
 
 
-def save_model_and_preprocessor(model, model_path='../models/workout_model.pkl'):
+def save_model_and_preprocessor(model, feature_names, model_path='../models/workout_model.pkl', features_path='../models/feature_names.pkl'):
     """
-    Save the trained model for later use in API.
+    Save the trained model and feature names for later use in API.
 
     Args:
         model: Trained machine learning model
+        feature_names: List of feature names from training
         model_path: Path where to save the model
+        features_path: Path where to save feature names
     """
     # Create models directory if it doesn't exist
     os.makedirs(os.path.dirname(model_path), exist_ok=True)
@@ -153,7 +155,13 @@ def save_model_and_preprocessor(model, model_path='../models/workout_model.pkl')
     with open(model_path, 'wb') as f:
         pickle.dump(model, f)
 
+    # Save the feature names
+    with open(features_path, 'wb') as f:
+        pickle.dump(feature_names, f)
+
     print(f"💾 Model saved to: {model_path}")
+    print(f"📋 Feature names saved to: {features_path}")
+    print(f"🔧 Features count: {len(feature_names)}")
 
 
 def train_and_save_production_model(csv_filepath='../data/train.csv'):
@@ -187,8 +195,9 @@ def train_and_save_production_model(csv_filepath='../data/train.csv'):
     print("="*50)
     evaluate_model(production_model, X_test, y_test)
 
-    # Save the model for API use
-    save_model_and_preprocessor(production_model)
+    # Save the model and feature names for API use
+    feature_names = list(X_train.columns)
+    save_model_and_preprocessor(production_model, feature_names)
 
     return production_model, X_test, y_test
 
