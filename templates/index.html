@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Personalized Workout Recommender</title>
+    <style>
+        /* Basic styling for the form */
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+            color: #555;
+        }
+        
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 5px;
+            font-size: 16px;
+            resize: vertical;
+            min-height: 120px;
+        }
+        
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 12px 30px;
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+            width: 100%;
+        }
+        
+        button:hover {
+            background-color: #0056b3;
+        }
+        
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        
+        .result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 5px;
+            display: none;
+        }
+        
+        .result.success {
+            background-color: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        
+        .result.error {
+            background-color: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        
+        .loading {
+            text-align: center;
+            color: #666;
+        }
+        
+        .example {
+            background-color: #e9ecef;
+            padding: 15px;
+            border-radius: 5px;
+            margin-bottom: 20px;
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🏋️ Personalized Workout Recommender</h1>
+        
+        <div class="example">
+            <strong>Example prompt:</strong><br>
+            "I am a 25-year-old male with a height of 180 cm and a weight of 75 kg. My primary goal is muscle gain, and I aim to reach a target weight of 80 kg. I am a beginner at the gym. Can you create a 7-day workout plan for me?"
+        </div>
+        
+        <form id="workoutForm">
+            <div class="form-group">
+                <label for="prompt">Enter your workout requirements:</label>
+                <textarea 
+                    id="prompt" 
+                    name="prompt" 
+                    placeholder="Describe yourself: age, gender, height, weight, fitness goal, and gym experience level..."
+                    required
+                ></textarea>
+            </div>
+            
+            <button type="submit" id="submitBtn">Get Workout Recommendation</button>
+        </form>
+        
+        <div id="result" class="result">
+            <div id="resultContent"></div>
+        </div>
+    </div>
+
+    <script>
+        // JavaScript for handling form submission and API communication
+        document.getElementById('workoutForm').addEventListener('submit', async function(e) {
+            e.preventDefault(); // Prevent default form submission
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            const promptText = document.getElementById('prompt').value;
+            
+            // Validate input
+            if (!promptText.trim()) {
+                showError('Please enter your workout requirements.');
+                return;
+            }
+            
+            // Show loading state
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Getting Recommendation...';
+            resultDiv.style.display = 'none';
+            
+            try {
+                // Send request to Flask API
+                const response = await fetch('/predict', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        prompt: promptText
+                    })
+                });
+                
+                const data = await response.json();
+                
+                if (data.status === 'success') {
+                    showSuccess(data);
+                } else {
+                    showError(data.error || 'An error occurred while processing your request.');
+                }
+                
+            } catch (error) {
+                showError('Failed to connect to the server. Please try again.');
+                console.error('Error:', error);
+            } finally {
+                // Reset button state
+                submitBtn.disabled = false;
+                submitBtn.textContent = 'Get Workout Recommendation';
+            }
+        });
+        
+        function showSuccess(data) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            const prediction = data.prediction;
+            const workoutType = prediction.workout_type;
+            const confidence = prediction.confidence;
+            const probabilities = prediction.probabilities;
+            
+            resultContent.innerHTML = `
+                <h3>🎯 Recommended Workout Type: <strong>${workoutType.toUpperCase()}</strong></h3>
+                <p><strong>Confidence:</strong> ${confidence}%</p>
+                
+                <h4>📊 Detailed Probabilities:</h4>
+                <ul>
+                    <li><strong>Cardio:</strong> ${probabilities.cardio}%</li>
+                    <li><strong>Mixed:</strong> ${probabilities.mixed}%</li>
+                    <li><strong>Strength:</strong> ${probabilities.strength}%</li>
+                </ul>
+                
+                <div style="margin-top: 15px; padding: 10px; background-color: #f8f9fa; border-radius: 5px;">
+                    <strong>💡 What this means:</strong><br>
+                    ${getWorkoutTypeExplanation(workoutType)}
+                </div>
+            `;
+            
+            resultDiv.className = 'result success';
+            resultDiv.style.display = 'block';
+        }
+        
+        function showError(message) {
+            const resultDiv = document.getElementById('result');
+            const resultContent = document.getElementById('resultContent');
+            
+            resultContent.innerHTML = `
+                <h3>❌ Error</h3>
+                <p>${message}</p>
+            `;
+            
+            resultDiv.className = 'result error';
+            resultDiv.style.display = 'block';
+        }
+        
+        function getWorkoutTypeExplanation(workoutType) {
+            const explanations = {
+                'cardio': 'Focus on cardiovascular exercises like running, cycling, and jumping jacks to improve heart health and endurance.',
+                'strength': 'Emphasize resistance training with weights, bodyweight exercises, and muscle-building movements.',
+                'mixed': 'Combine both cardio and strength training for a balanced approach to fitness.'
+            };
+            
+            return explanations[workoutType] || 'A personalized workout plan based on your characteristics.';
+        }
+    </script>
+</body>
+</html>

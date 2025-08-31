@@ -1,5 +1,7 @@
 import pandas as pd
 import numpy as np
+import pickle
+import os
 from sklearn.model_selection import train_test_split
 from sklearn.preprocessing import MinMaxScaler, LabelEncoder
 from sklearn.ensemble import RandomForestClassifier
@@ -136,34 +138,69 @@ def evaluate_model(model, X_test, y_test):
     print(f"F1-Score: {fscore}")
 
 
+def save_model_and_preprocessor(model, model_path='../models/workout_model.pkl'):
+    """
+    Save the trained model for later use in API.
+
+    Args:
+        model: Trained machine learning model
+        model_path: Path where to save the model
+    """
+    # Create models directory if it doesn't exist
+    os.makedirs(os.path.dirname(model_path), exist_ok=True)
+
+    # Save the model
+    with open(model_path, 'wb') as f:
+        pickle.dump(model, f)
+
+    print(f"💾 Model saved to: {model_path}")
+
+
+def train_and_save_production_model(csv_filepath='../data/train.csv'):
+    """
+    Train the final production model and save it for API use.
+
+    Args:
+        csv_filepath: Path to training data
+
+    Returns:
+        tuple: (trained_model, X_test, y_test) for final evaluation
+    """
+    print("\n" + "="*60)
+    print("🏭 TRAINING PRODUCTION MODEL FOR API DEPLOYMENT")
+    print("="*60)
+
+    # Load and preprocess data
+    X_train, X_test, y_train, y_test = preprocess_data(csv_filepath)
+
+    # Train model with hyperparameter tuning and class balancing
+    production_model = train_model(
+        X_train, y_train,
+        tune_hyperparams=True,
+        search_type='random',
+        use_class_weight=True
+    )
+
+    # Evaluate the production model
+    print("\n" + "="*50)
+    print("📊 PRODUCTION MODEL EVALUATION")
+    print("="*50)
+    evaluate_model(production_model, X_test, y_test)
+
+    # Save the model for API use
+    save_model_and_preprocessor(production_model)
+
+    return production_model, X_test, y_test
+
+
 if __name__ == '__main__':
-    # Load and preprocess data (full dataset)
-    print("Loading and preprocessing data...")
-    X_train, X_test, y_train, y_test = preprocess_data('../data/train.csv')
+    # Train and save the production model for API deployment
+    production_model, X_test, y_test = train_and_save_production_model()
 
-    print(f"Training set shape: {X_train.shape}")
-    print(f"Test set shape: {X_test.shape}")
-    print(f"Number of classes: {len(set(y_train))}")
-
-    # Train the model with hyperparameter tuning
-    print("\n" + "="*50)
-    print("TRAINING MODEL WITH HYPERPARAMETER TUNING")
-    print("="*50)
-    model_tuned = train_model(X_train, y_train, tune_hyperparams=True, search_type='random')
-
-    print("\n" + "="*50)
-    print("EVALUATING TUNED MODEL")
-    print("="*50)
-    evaluate_model(model_tuned, X_test, y_test)
-
-    # Compare with baseline model (no tuning)
-    print("\n" + "="*50)
-    print("TRAINING BASELINE MODEL (NO TUNING)")
-    print("="*50)
-    model_baseline = train_model(X_train, y_train, tune_hyperparams=False)
-
-    print("\n" + "="*50)
-    print("EVALUATING BASELINE MODEL")
-    print("="*50)
-    evaluate_model(model_baseline, X_test, y_test)
+    print("\n" + "🎉" + "="*58 + "🎉")
+    print("🚀 PRODUCTION MODEL READY FOR API DEPLOYMENT!")
+    print("🎉" + "="*58 + "🎉")
+    print("📁 Model saved in: models/workout_model.pkl")
+    print("🌐 Ready to create Flask API endpoint!")
+    print("💡 Next step: Create app.py for web API")
 
