@@ -180,7 +180,7 @@
 
             try {
                 // Use different endpoints for local vs production
-                const apiEndpoint = window.location.hostname === 'localhost' ? '/predict' : '/api/predict';
+                const apiEndpoint = window.location.hostname === 'localhost' ? '/predict' : '/api/index';
                 const response = await fetch(apiEndpoint, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },

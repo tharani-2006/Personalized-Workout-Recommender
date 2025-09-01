@@ -14,44 +14,88 @@ WORKOUT_TYPES = {
     'strength': 'Muscle Building'
 }
 
-def handler(request):
-    """Main Vercel serverless function handler"""
+from http.server import BaseHTTPRequestHandler
 
-    # Handle CORS
-    headers = {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Methods': 'POST, OPTIONS',
-        'Access-Control-Allow-Headers': 'Content-Type',
-        'Content-Type': 'application/json'
-    }
+# Main handler function for Vercel
+def handler(request, response):
+    """Vercel serverless function entry point"""
 
-    # Handle OPTIONS request (CORS preflight)
+    # Set CORS headers
+    response.headers['Access-Control-Allow-Origin'] = '*'
+    response.headers['Access-Control-Allow-Methods'] = 'POST, OPTIONS'
+    response.headers['Access-Control-Allow-Headers'] = 'Content-Type'
+    response.headers['Content-Type'] = 'application/json'
+
+    # Handle OPTIONS (CORS preflight)
     if request.method == 'OPTIONS':
-        return {
-            'statusCode': 200,
-            'headers': headers,
-            'body': ''
-        }
+        response.status_code = 200
+        return ''
 
-    # Handle POST request
+    # Handle POST
     if request.method == 'POST':
         try:
-            # Parse request data
-            if hasattr(request, 'json') and request.json:
-                data = request.json
-            else:
-                data = json.loads(request.body)
+            # Get request data
+            data = request.json if hasattr(request, 'json') else json.loads(request.body)
 
             if 'prompt' not in data:
-                return {
-                    'statusCode': 400,
-                    'headers': headers,
-                    'body': json.dumps({'status': 'error', 'error': 'Missing required field: prompt'})
-                }
+                response.status_code = 400
+                return json.dumps({'status': 'error', 'error': 'Missing prompt field'})
 
             user_prompt = data['prompt']
 
-            # Process the prompt and make prediction (using advanced preprocessing)
+            # Process and predict
+            user_features = preprocess_prompt_advanced(user_prompt)
+            model = load_model()
+
+            prediction_numeric = model.predict(user_features)[0]
+            prediction_probabilities = model.predict_proba(user_features)[0]
+
+            # Convert to response
+            class_names = ['cardio', 'mixed', 'strength']
+            technical_type = class_names[prediction_numeric]
+            human_type = WORKOUT_TYPES[technical_type]
+            confidence = float(max(prediction_probabilities))
+
+            result = {
+                'status': 'success',
+                'prediction': {
+                    'workout_type': human_type,
+                    'confidence': round(confidence * 100, 2),
+                    'probabilities': {
+                        WORKOUT_TYPES[class_names[i]]: round(float(prob) * 100, 2)
+                        for i, prob in enumerate(prediction_probabilities)
+                    }
+                }
+            }
+
+            response.status_code = 200
+            return json.dumps(result)
+
+        except Exception as e:
+            response.status_code = 500
+            return json.dumps({'status': 'error', 'error': f'Prediction failed: {str(e)}'})
+
+    # Method not allowed
+    response.status_code = 405
+    return json.dumps({'status': 'error', 'error': 'Method not allowed'})
+
+# Legacy handler class for compatibility
+class HandlerClass(BaseHTTPRequestHandler):
+    def do_POST(self):
+        """Handle POST requests for workout predictions"""
+        try:
+            # Read request data
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            data = json.loads(post_data.decode('utf-8'))
+
+            if 'prompt' not in data:
+                self.send_error_response('Missing required field: prompt', 400)
+                return
+
+            user_prompt = data['prompt']
+
+            # Process the prompt and make prediction
             user_features = preprocess_prompt_advanced(user_prompt)
             model = load_model()
 
@@ -78,25 +122,35 @@ def handler(request):
                 }
             }
 
-            return {
-                'statusCode': 200,
-                'headers': headers,
-                'body': json.dumps(response)
-            }
+            self.send_success_response(response)
 
         except Exception as e:
-            return {
-                'statusCode': 500,
-                'headers': headers,
-                'body': json.dumps({'status': 'error', 'error': f'Prediction failed: {str(e)}'})
-            }
+            self.send_error_response(f'Prediction failed: {str(e)}', 500)
 
-    # Handle other methods
-    return {
-        'statusCode': 405,
-        'headers': headers,
-        'body': json.dumps({'status': 'error', 'error': 'Method not allowed'})
-    }
+    def do_OPTIONS(self):
+        """Handle CORS preflight requests"""
+        self.send_response(200)
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.send_header('Access-Control-Allow-Methods', 'POST, OPTIONS')
+        self.send_header('Access-Control-Allow-Headers', 'Content-Type')
+        self.end_headers()
+
+    def send_success_response(self, data):
+        """Send successful JSON response with CORS headers"""
+        self.send_response(200)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        self.wfile.write(json.dumps(data).encode('utf-8'))
+
+    def send_error_response(self, message, status_code):
+        """Send error JSON response with CORS headers"""
+        self.send_response(status_code)
+        self.send_header('Content-Type', 'application/json')
+        self.send_header('Access-Control-Allow-Origin', '*')
+        self.end_headers()
+        error_data = {'status': 'error', 'error': message}
+        self.wfile.write(json.dumps(error_data).encode('utf-8'))
     
 def load_model():
     """Load intelligent rule-based classifier"""
