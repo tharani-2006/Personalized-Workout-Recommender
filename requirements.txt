@@ -1,3 +1,2 @@
-numpy==1.24.3
-pandas==2.0.3
-scikit-learn==1.3.0
+# Minimal dependencies for Vercel serverless deployment
+# No heavy ML libraries needed for the rule-based classifier

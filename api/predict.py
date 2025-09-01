@@ -1,14 +1,17 @@
 
+"""
+Vercel Serverless Function for Workout Prediction
+Optimized for Vercel deployment with minimal dependencies
+"""
+
 import json
 import re
-import numpy as np
 from http.server import BaseHTTPRequestHandler
-import pickle
-import os
 
-human_friendly_names = {
+# Human-friendly workout type mapping
+WORKOUT_TYPES = {
     'cardio': 'Endurance Training',
-    'mixed': 'Balanced Fitness', 
+    'mixed': 'Balanced Fitness',
     'strength': 'Muscle Building'
 }
 
@@ -79,16 +82,25 @@ class handler(BaseHTTPRequestHandler):
                 age = features_dict.get('age', 30)
                 goal = features_dict.get('goal', 'health maintenance')
                 gym_level = features_dict.get('gym_level', 'beginner')
+                weight = features_dict.get('weight', 70)
+                height = features_dict.get('height', 170)
+
+                # Calculate BMI for additional insight
+                bmi = weight / ((height / 100) ** 2)
 
                 # Intelligent rule-based prediction based on our model's patterns
-                if 'weight loss' in goal.lower() or 'endurance' in goal.lower():
-                    return np.array([0])  # Endurance Training (cardio)
-                elif 'muscle' in goal.lower() or 'strength' in goal.lower() or 'build' in goal.lower():
-                    return np.array([2])  # Muscle Building (strength)
+                if 'weight loss' in goal.lower() or 'endurance' in goal.lower() or 'cardio' in goal.lower():
+                    return [0]  # Endurance Training (cardio)
+                elif 'muscle' in goal.lower() or 'strength' in goal.lower() or 'build' in goal.lower() or 'tone' in goal.lower():
+                    return [2]  # Muscle Building (strength)
                 elif gym_level == 'beginner' and age < 30:
-                    return np.array([1])  # Balanced Fitness (mixed)
+                    return [1]  # Balanced Fitness (mixed)
+                elif bmi > 25 and 'health' in goal.lower():
+                    return [0]  # Endurance Training for health
+                elif age > 40 and gym_level == 'beginner':
+                    return [1]  # Balanced Fitness for older beginners
                 else:
-                    return np.array([2])  # Default to Muscle Building
+                    return [2]  # Default to Muscle Building
 
             def predict_proba(self, features_dict):
                 """Return prediction probabilities"""
@@ -96,11 +108,11 @@ class handler(BaseHTTPRequestHandler):
 
                 # Create realistic probability distributions
                 if prediction == 0:  # Endurance Training
-                    return np.array([[0.75, 0.15, 0.10]])
+                    return [[0.75, 0.15, 0.10]]
                 elif prediction == 1:  # Balanced Fitness
-                    return np.array([[0.25, 0.65, 0.10]])
+                    return [[0.25, 0.65, 0.10]]
                 else:  # Muscle Building
-                    return np.array([[0.10, 0.15, 0.75]])
+                    return [[0.10, 0.15, 0.75]]
 
         return IntelligentWorkoutClassifier()
     
