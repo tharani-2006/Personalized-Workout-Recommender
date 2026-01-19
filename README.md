@@ -1,5 +1,5 @@
 <div align="center">
-#  Personalized Workout Recommender
+  <h1><b>Personalized Workout Recommender</b></h1>
 </div>
 <div align="center">
 
