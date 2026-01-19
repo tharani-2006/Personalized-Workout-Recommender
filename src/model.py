@@ -207,9 +207,4 @@ if __name__ == '__main__':
     production_model, X_test, y_test = train_and_save_production_model()
 
     print("\n" + "🎉" + "="*58 + "🎉")
-    print("🚀 PRODUCTION MODEL READY FOR API DEPLOYMENT!")
-    print("🎉" + "="*58 + "🎉")
-    print("📁 Model saved in: models/workout_model.pkl")
-    print("🌐 Ready to create Flask API endpoint!")
-    print("💡 Next step: Create app.py for web API")
-
+    
