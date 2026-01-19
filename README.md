@@ -1,5 +1,6 @@
-# 💪 Personalized Workout Recommender
-
+<div align="center">
+#  Personalized Workout Recommender
+</div>
 <div align="center">
 
 ![Python](https://img.shields.io/badge/Python-3.8+-blue.svg)
